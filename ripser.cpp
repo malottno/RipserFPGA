@@ -91,9 +91,10 @@ void check_overflow(index_t i) {
 #else
 	    (i < 0)
 #endif
-		throw std::overflow_error("simplex index " + std::to_string((uint64_t)i) +
-		                          " in filtration is larger than maximum index " +
-		                          std::to_string(max_simplex_index));
+		;
+//		throw std::overflow_error("simplex index " + std::to_string((uint64_t)i) +
+//		                          " in filtration is larger than maximum index " +
+//		                          std::to_string(max_simplex_index));
 }
 
 class binomial_coeff_table {
@@ -112,7 +113,7 @@ public:
 	}
 
 	index_t operator()(index_t n, index_t k) const {
-		assert(n < B.size() && k < B[n].size() && n >= k - 1);
+		//assert(n < B.size() && k < B[n].size() && n >= k - 1);
 		return B[k][n];
 	}
 };
@@ -226,7 +227,7 @@ template <compressed_matrix_layout Layout> struct compressed_distance_matrix {
 
 	compressed_distance_matrix(std::vector<value_t>&& _distances)
 	    : distances(std::move(_distances)), rows((1 + std::sqrt(1 + 8 * distances.size())) / 2) {
-		assert(distances.size() == size() * (size() - 1) / 2);
+		//assert(distances.size() == size() * (size() - 1) / 2);
 		init_rows();
 	}
 
@@ -313,12 +314,12 @@ struct euclidean_distance_matrix {
 
 	euclidean_distance_matrix(std::vector<std::vector<value_t>>&& _points)
 	    : points(std::move(_points)) {
-		for (auto p : points) { assert(p.size() == points.front().size()); }
+		//for (auto p : points) { assert(p.size() == points.front().size()); }
 	}
 
 	value_t operator()(const index_t i, const index_t j) const {
-		assert(i < points.size());
-		assert(j < points.size());
+		//assert(i < points.size());
+		//assert(j < points.size());
 		return std::sqrt(std::inner_product(
 		    points[i].begin(), points[i].end(), points[j].begin(), value_t(), std::plus<value_t>(),
 		    [](value_t u, value_t v) { return (u - v) * (u - v); }));
@@ -378,7 +379,7 @@ public:
 	void append_column() { bounds.push_back(entries.size()); }
 
 	void push_back(const ValueType e) {
-		assert(0 < size());
+		//assert(0 < size());
 		entries.push_back(e);
 		++bounds.back();
 	}
@@ -793,7 +794,7 @@ public:
 						while (true) {
 							diameter_entry_t e = pop_pivot(working_reduction_column);
 							if (get_index(e) == -1) break;
-							assert(get_coefficient(e) > 0);
+							//assert(get_coefficient(e) > 0);
 							reduction_matrix.push_back(e);
 						}
 						break;
@@ -875,7 +876,7 @@ public:
 			idx_above += binomial_coeff(j, k + 1);
 			--j;
 			--k;
-			assert(k != -1);
+			//assert(k != -1);
 		}
 		value_t cofacet_diameter = get_diameter(simplex);
 		for (index_t i : vertices) cofacet_diameter = std::max(cofacet_diameter, dist(j, i));
@@ -1016,7 +1017,7 @@ euclidean_distance_matrix read_point_cloud(std::istream& input_stream) {
 			s.ignore();
 		}
 		if (!point.empty()) points.push_back(point);
-		assert(point.size() == points.front().size());
+		//assert(point.size() == points.front().size());
 	}
 
 	euclidean_distance_matrix eucl_dist(std::move(points));
