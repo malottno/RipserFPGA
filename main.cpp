@@ -13,6 +13,10 @@
  
  
 int main(int argc, char** argv) {
+	
+	std::cout << "This is a test" << std::endl;
+	
+	
 	const char* filename = nullptr;
 
 	file_format format = DISTANCE_MATRIX;
@@ -71,13 +75,13 @@ int main(int argc, char** argv) {
 			filename = argv[i];
 		}
 	}
-
+	
 	std::ifstream file_stream(filename);
 	if (filename && file_stream.fail()) {
 		std::cerr << "couldn't open file " << filename << std::endl;
 		exit(-1);
 	}
-
+	/*
 	if (format == SPARSE) {
 		sparse_distance_matrix dist =
 		    read_sparse_distance_matrix(filename ? file_stream : std::cin);
@@ -133,5 +137,5 @@ int main(int argc, char** argv) {
 			    .compute_barcodes();
 		}
 		exit(0);
-	}
+	}*/
 }

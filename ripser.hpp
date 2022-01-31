@@ -9,7 +9,19 @@
 #include <numeric>
 #include <queue>
 #include <sstream>
-#include <unordered_map>
+#include <unordered_map> 
+
+enum file_format {
+	LOWER_DISTANCE_MATRIX,
+	UPPER_DISTANCE_MATRIX,
+	DISTANCE_MATRIX,
+	POINT_CLOUD,
+	DIPHA,
+	SPARSE,
+	BINARY
+};
+
+ 
  
 template <class Key, class T, class H, class E> using hash_map = std::unordered_map<Key, T, H, E>;
 template <class Key> using hash = std::hash<Key>;
@@ -21,6 +33,50 @@ typedef uint16_t coefficient_t;
 #ifdef INDICATE_PROGRESS
 static const std::chrono::milliseconds time_step(40);
 #endif
+ 
+ 
+#ifdef USE_COEFFICIENTS
+
+#ifdef _MSC_VER
+#define PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
+#else
+#define PACK(...) __attribute__((__packed__)) __VA_ARGS__
+#endif
+
+PACK(struct entry_t {
+	index_t index : 8 * sizeof(index_t) - num_coefficient_bits;
+	coefficient_t coefficient : num_coefficient_bits;
+	entry_t(index_t _index, coefficient_t _coefficient)
+	    : index(_index), coefficient(_coefficient) {}
+	entry_t(index_t _index) : index(_index), coefficient(0) {}
+	entry_t() : index(0), coefficient(0) {}
+};)
+
+static_assert(sizeof(entry_t) == sizeof(index_t), "size of entry_t is not the same as index_t");
+
+entry_t make_entry(index_t i, coefficient_t c) { return entry_t(i, c); }
+index_t get_index(const entry_t& e) { return e.index; }
+index_t get_coefficient(const entry_t& e) { return e.coefficient; }
+void set_coefficient(entry_t& e, const coefficient_t c) { e.coefficient = c; }
+
+std::ostream& operator<<(std::ostream& stream, const entry_t& e) {
+	stream << get_index(e) << ":" << get_coefficient(e);
+	return stream;
+}
+
+#else
+
+typedef index_t entry_t;
+const index_t get_index(const entry_t& i) { return i; }
+index_t get_coefficient(const entry_t& i) { return 1; }
+entry_t make_entry(index_t _index, coefficient_t _value) { return entry_t(_index); }
+void set_coefficient(entry_t& e, const coefficient_t c) {}
+
+#endif
+ 
+ 
+ 
+
 
 static const std::string clear_line("\r\033[K");
 
@@ -181,10 +237,6 @@ std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m) 
 
 
 
-class ripserFPGA {
-	
-	
-	
-	
-	
-};
+
+void print_usage_and_exit(int);
+

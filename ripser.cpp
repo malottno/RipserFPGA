@@ -48,56 +48,7 @@
 
 
 
-
-#ifdef USE_COEFFICIENTS
-
-#ifdef _MSC_VER
-#define PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
-#else
-#define PACK(...) __attribute__((__packed__)) __VA_ARGS__
-#endif
-
-PACK(struct entry_t {
-	index_t index : 8 * sizeof(index_t) - num_coefficient_bits;
-	coefficient_t coefficient : num_coefficient_bits;
-	entry_t(index_t _index, coefficient_t _coefficient)
-	    : index(_index), coefficient(_coefficient) {}
-	entry_t(index_t _index) : index(_index), coefficient(0) {}
-	entry_t() : index(0), coefficient(0) {}
-};)
-
-static_assert(sizeof(entry_t) == sizeof(index_t), "size of entry_t is not the same as index_t");
-
-entry_t make_entry(index_t i, coefficient_t c) { return entry_t(i, c); }
-index_t get_index(const entry_t& e) { return e.index; }
-index_t get_coefficient(const entry_t& e) { return e.coefficient; }
-void set_coefficient(entry_t& e, const coefficient_t c) { e.coefficient = c; }
-
-std::ostream& operator<<(std::ostream& stream, const entry_t& e) {
-	stream << get_index(e) << ":" << get_coefficient(e);
-	return stream;
-}
-
-#else
-
-typedef index_t entry_t;
-const index_t get_index(const entry_t& i) { return i; }
-index_t get_coefficient(const entry_t& i) { return 1; }
-entry_t make_entry(index_t _index, coefficient_t _value) { return entry_t(_index); }
-void set_coefficient(entry_t& e, const coefficient_t c) {}
-
-#endif
-
 const entry_t& get_entry(const entry_t& e) { return e; }
-
-typedef std::pair<value_t, index_t> diameter_index_t;
-value_t get_diameter(const diameter_index_t& i) { return i.first; }
-index_t get_index(const diameter_index_t& i) { return i.second; }
-
-typedef std::pair<index_t, value_t> index_diameter_t;
-index_t get_index(const index_diameter_t& i) { return i.first; }
-value_t get_diameter(const index_diameter_t& i) { return i.second; }
-
 struct diameter_entry_t : std::pair<value_t, entry_t> {
 	using std::pair<value_t, entry_t>::pair;
 	diameter_entry_t(value_t _diameter, index_t _index, coefficient_t _coefficient)
@@ -133,31 +84,7 @@ template <typename Entry> bool greater_diameter_or_smaller_index(const Entry& a,
 	       ((get_diameter(a) == get_diameter(b)) && (get_index(a) < get_index(b)));
 }
 
-enum compressed_matrix_layout { LOWER_TRIANGULAR, UPPER_TRIANGULAR };
 
-template <compressed_matrix_layout Layout> struct compressed_distance_matrix {
-	std::vector<value_t> distances;
-	std::vector<value_t*> rows;
-
-	compressed_distance_matrix(std::vector<value_t>&& _distances)
-	    : distances(std::move(_distances)), rows((1 + std::sqrt(1 + 8 * distances.size())) / 2) {
-		//assert(distances.size() == size() * (size() - 1) / 2);
-		init_rows();
-	}
-
-	template <typename DistanceMatrix>
-	compressed_distance_matrix(const DistanceMatrix& mat)
-	    : distances(mat.size() * (mat.size() - 1) / 2), rows(mat.size()) {
-		init_rows();
-
-		for (size_t i = 1; i < size(); ++i)
-			for (size_t j = 0; j < i; ++j) rows[i][j] = mat(i, j);
-	}
-
-	value_t operator()(const index_t i, const index_t j) const;
-	size_t size() const { return rows.size(); }
-	void init_rows();
-};
 
 
 
@@ -835,15 +762,6 @@ template <> std::vector<diameter_index_t> ripser<sparse_distance_matrix>::get_ed
 	return edges;
 }
 
-enum file_format {
-	LOWER_DISTANCE_MATRIX,
-	UPPER_DISTANCE_MATRIX,
-	DISTANCE_MATRIX,
-	POINT_CLOUD,
-	DIPHA,
-	SPARSE,
-	BINARY
-};
 
 static const uint16_t endian_check(0xff00);
 static const bool is_big_endian = *reinterpret_cast<const uint8_t*>(&endian_check);
@@ -869,7 +787,6 @@ euclidean_distance_matrix read_point_cloud(std::istream& input_stream) {
 			s.ignore();
 		}
 		if (!point.empty()) points.push_back(point);
-		//assert(point.size() == points.front().size());
 	}
 
 	euclidean_distance_matrix eucl_dist(std::move(points));
@@ -880,6 +797,8 @@ euclidean_distance_matrix read_point_cloud(std::istream& input_stream) {
 	return eucl_dist;
 }
 
+
+/*
 sparse_distance_matrix read_sparse_distance_matrix(std::istream& input_stream) {
 	std::vector<std::vector<index_diameter_t>> neighbors;
 	index_t num_edges = 0;
@@ -991,6 +910,8 @@ compressed_lower_distance_matrix read_file(std::istream& input_stream, const fil
 		return read_binary(input_stream);
 	}
 }
+
+*/
 
 void print_usage_and_exit(int exit_code) {
 	std::cerr
