@@ -1,17 +1,16 @@
 build: ripser
 
 
-all: ripser ripser-coeff ripser-debug
+all: output ripser ripser-coeff ripser-debug
 
-
-ripser: ripser.cpp
-	c++ -std=c++11 -Wall ripser.cpp -o ripser -O3 -D NDEBUG
-
-ripser-coeff: ripser.cpp
-	c++ -std=c++11 -Wall ripser.cpp -o ripser-coeff -O3 -D NDEBUG -D USE_COEFFICIENTS
-
-ripser-debug: ripser.cpp
-	c++ -std=c++11 -Wall ripser.cpp -o ripser-debug -g
+output: main.o ripser.o
+	c++ -std=c++11 -Wall main.o ripser.o -o output
+	
+main.o: main.cpp
+	c++ -c main.cpp
+	
+ripser.o: ripser.cpp ripser.hpp
+	c++ -c ripser.cpp
 
 
 clean:
