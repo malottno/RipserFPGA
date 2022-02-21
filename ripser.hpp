@@ -1,5 +1,5 @@
- 
-  
+#pragma once
+
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -20,8 +20,6 @@ enum file_format {
 	SPARSE,
 	BINARY
 };
-
- 
  
 template <class Key, class T, class H, class E> using hash_map = std::unordered_map<Key, T, H, E>;
 template <class Key> using hash = std::hash<Key>;
@@ -54,10 +52,10 @@ PACK(struct entry_t {
 
 static_assert(sizeof(entry_t) == sizeof(index_t), "size of entry_t is not the same as index_t");
 
-entry_t make_entry(index_t i, coefficient_t c) { return entry_t(i, c); }
-index_t get_index(const entry_t& e) { return e.index; }
-index_t get_coefficient(const entry_t& e) { return e.coefficient; }
-void set_coefficient(entry_t& e, const coefficient_t c) { e.coefficient = c; }
+extern entry_t make_entry(index_t i, coefficient_t c);
+extern index_t get_index(const entry_t& e);
+extern index_t get_coefficient(const entry_t& e);
+extern void set_coefficient(entry_t& e, const coefficient_t c);
 
 std::ostream& operator<<(std::ostream& stream, const entry_t& e) {
 	stream << get_index(e) << ":" << get_coefficient(e);
@@ -67,10 +65,10 @@ std::ostream& operator<<(std::ostream& stream, const entry_t& e) {
 #else
 
 typedef index_t entry_t;
-const index_t get_index(const entry_t& i) { return i; }
-index_t get_coefficient(const entry_t& i) { return 1; }
-entry_t make_entry(index_t _index, coefficient_t _value) { return entry_t(_index); }
-void set_coefficient(entry_t& e, const coefficient_t c) {}
+extern const index_t get_index(const entry_t& i);
+extern index_t get_coefficient(const entry_t& i);
+extern entry_t make_entry(index_t _index, coefficient_t _value);
+extern void set_coefficient(entry_t& e, const coefficient_t c);
 
 #endif
  
@@ -85,23 +83,15 @@ static const size_t num_coefficient_bits = 8;
 static const index_t max_simplex_index =
     (index_t(1) << (8 * sizeof(index_t) - 1 - num_coefficient_bits)) - 1;
 
-void check_overflow(index_t i) {
-	if
-#ifdef USE_COEFFICIENTS
-	    (i > max_simplex_index)
-#else
-	    (i < 0)
-#endif
-		;
-}
+extern void check_overflow(index_t i);
 
 typedef std::pair<value_t, index_t> diameter_index_t;
-value_t get_diameter(const diameter_index_t& i) { return i.first; }
-index_t get_index(const diameter_index_t& i) { return i.second; }
+extern value_t get_diameter(const diameter_index_t& i);
+extern index_t get_index(const diameter_index_t& i);
 
 typedef std::pair<index_t, value_t> index_diameter_t;
-index_t get_index(const index_diameter_t& i) { return i.first; }
-value_t get_diameter(const index_diameter_t& i) { return i.second; }
+extern index_t get_index(const index_diameter_t& i);
+extern value_t get_diameter(const index_diameter_t& i);
 
 
 enum compressed_matrix_layout { LOWER_TRIANGULAR, UPPER_TRIANGULAR };
@@ -133,31 +123,14 @@ template <compressed_matrix_layout Layout> struct compressed_distance_matrix {
 typedef compressed_distance_matrix<LOWER_TRIANGULAR> compressed_lower_distance_matrix;
 typedef compressed_distance_matrix<UPPER_TRIANGULAR> compressed_upper_distance_matrix;
 
-template <> void compressed_lower_distance_matrix::init_rows() {
-	value_t* pointer = &distances[0];
-	for (size_t i = 1; i < size(); ++i) {
-		rows[i] = pointer;
-		pointer += i;
-	}
-}
+extern template void compressed_lower_distance_matrix::init_rows();
+extern template void compressed_upper_distance_matrix::init_rows(); 
 
-template <> void compressed_upper_distance_matrix::init_rows() {
-	value_t* pointer = &distances[0] - 1;
-	for (size_t i = 0; i < size() - 1; ++i) {
-		rows[i] = pointer;
-		pointer += size() - i - 2;
-	}
-}
+extern template
+value_t compressed_lower_distance_matrix::operator()(const index_t i, const index_t j) const;
 
-template <>
-value_t compressed_lower_distance_matrix::operator()(const index_t i, const index_t j) const {
-	return i == j ? 0 : i < j ? rows[j][i] : rows[i][j];
-}
-
-template <>
-value_t compressed_upper_distance_matrix::operator()(const index_t i, const index_t j) const {
-	return i == j ? 0 : i > j ? rows[j][i] : rows[i][j];
-}
+extern template
+value_t compressed_upper_distance_matrix::operator()(const index_t i, const index_t j) const;
 
 struct sparse_distance_matrix {
 	std::vector<std::vector<index_diameter_t>> neighbors;
@@ -218,24 +191,29 @@ public:
 };
 
 
-bool is_prime(const coefficient_t n) {
-	if (!(n & 1) || n < 2) return n == 2;
-	for (coefficient_t p = 3; p <= n / p; p += 2)
-		if (!(n % p)) return false;
-	return true;
-}
+struct euclidean_distance_matrix {
+	std::vector<std::vector<value_t>> points;
 
-std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m) {
-	std::vector<coefficient_t> inverse(m);
-	inverse[1] = 1;
-	// m = a * (m / a) + m % a
-	// Multipying with inverse(a) * inverse(m % a):
-	// 0 = inverse(m % a) * (m / a) + inverse(a)  (mod m)
-	for (coefficient_t a = 2; a < m; ++a) inverse[a] = m - (inverse[m % a] * (m / a)) % m;
-	return inverse;
-}
+	euclidean_distance_matrix(std::vector<std::vector<value_t>>&& _points)
+	    : points(std::move(_points)) {
+		//for (auto p : points) { assert(p.size() == points.front().size()); }
+	}
 
+	value_t operator()(const index_t i, const index_t j) const {
+		//assert(i < points.size());
+		//assert(j < points.size());
+		return std::sqrt(std::inner_product(
+		    points[i].begin(), points[i].end(), points[j].begin(), value_t(), std::plus<value_t>(),
+		    [](value_t u, value_t v) { return (u - v) * (u - v); }));
+	}
 
+	size_t size() const { return points.size(); }
+};
+
+extern bool is_prime(const coefficient_t n);
+extern euclidean_distance_matrix read_point_cloud(std::istream& input_stream);
+
+extern std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m);
 
 
 void print_usage_and_exit(int);

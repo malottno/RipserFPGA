@@ -43,8 +43,48 @@
 
 //#define USE_ROBINHOOD_HASHMAP
 
-
 #include "ripser.hpp"
+
+
+
+
+
+
+
+
+
+#ifdef USE_COEFFICIENTS
+
+entry_t make_entry(index_t i, coefficient_t c) { return entry_t(i, c); }
+extern index_t get_index(const entry_t& e) { return e.index; }
+index_t get_coefficient(const entry_t& e) { return e.coefficient; }
+void set_coefficient(entry_t& e, const coefficient_t c) { e.coefficient = c; }
+
+std::ostream& operator<<(std::ostream& stream, const entry_t& e) {
+	stream << get_index(e) << ":" << get_coefficient(e);
+	return stream;
+}
+
+#else
+
+const index_t get_index(const entry_t& i) { return i; }
+index_t get_coefficient(const entry_t& i) { return 1; }
+entry_t make_entry(index_t _index, coefficient_t _value) { return entry_t(_index); }
+void set_coefficient(entry_t& e, const coefficient_t c) {}
+
+#endif
+
+
+
+
+
+value_t get_diameter(const diameter_index_t& i) { return i.first; }
+index_t get_index(const diameter_index_t& i) { return i.second; }
+
+index_t get_index(const index_diameter_t& i) { return i.first; }
+value_t get_diameter(const index_diameter_t& i) { return i.second; }
+
+
 
 
 
@@ -88,24 +128,58 @@ template <typename Entry> bool greater_diameter_or_smaller_index(const Entry& a,
 
 
 
-struct euclidean_distance_matrix {
-	std::vector<std::vector<value_t>> points;
-
-	euclidean_distance_matrix(std::vector<std::vector<value_t>>&& _points)
-	    : points(std::move(_points)) {
-		//for (auto p : points) { assert(p.size() == points.front().size()); }
+template <> void compressed_lower_distance_matrix::init_rows() {
+	value_t* pointer = &distances[0];
+	for (size_t i = 1; i < size(); ++i) {
+		rows[i] = pointer;
+		pointer += i;
 	}
+}
 
-	value_t operator()(const index_t i, const index_t j) const {
-		//assert(i < points.size());
-		//assert(j < points.size());
-		return std::sqrt(std::inner_product(
-		    points[i].begin(), points[i].end(), points[j].begin(), value_t(), std::plus<value_t>(),
-		    [](value_t u, value_t v) { return (u - v) * (u - v); }));
+template <> void compressed_upper_distance_matrix::init_rows() {
+	value_t* pointer = &distances[0] - 1;
+	for (size_t i = 0; i < size() - 1; ++i) {
+		rows[i] = pointer;
+		pointer += size() - i - 2;
 	}
+}
 
-	size_t size() const { return points.size(); }
-};
+
+
+
+
+template <>
+value_t compressed_lower_distance_matrix::operator()(const index_t i, const index_t j) const {
+	return i == j ? 0 : i < j ? rows[j][i] : rows[i][j];
+}
+
+template <>
+value_t compressed_upper_distance_matrix::operator()(const index_t i, const index_t j) const {
+	return i == j ? 0 : i > j ? rows[j][i] : rows[i][j];
+}
+
+
+bool is_prime(const coefficient_t n) {
+	if (!(n & 1) || n < 2) return n == 2;
+	for (coefficient_t p = 3; p <= n / p; p += 2)
+		if (!(n % p)) return false;
+	return true;
+}
+
+
+
+std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m) {
+	std::vector<coefficient_t> inverse(m);
+	inverse[1] = 1;
+	// m = a * (m / a) + m % a
+	// Multipying with inverse(a) * inverse(m % a):
+	// 0 = inverse(m % a) * (m / a) + inverse(a)  (mod m)
+	for (coefficient_t a = 2; a < m; ++a) inverse[a] = m - (inverse[m % a] * (m / a)) % m;
+	return inverse;
+}
+
+
+
 
 class union_find {
 	std::vector<index_t> parent;

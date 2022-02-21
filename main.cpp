@@ -1,4 +1,3 @@
- 
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -81,8 +80,8 @@ int main(int argc, char** argv) {
 		std::cerr << "couldn't open file " << filename << std::endl;
 		exit(-1);
 	}
-	/*
-	if (format == SPARSE) {
+	
+	if /*(format == SPARSE) {
 		sparse_distance_matrix dist =
 		    read_sparse_distance_matrix(filename ? file_stream : std::cin);
 		std::cout << "sparse distance matrix with " << dist.size() << " points and "
@@ -91,7 +90,7 @@ int main(int argc, char** argv) {
 
 		ripser<sparse_distance_matrix>(std::move(dist), dim_max, threshold, ratio, modulus)
 		    .compute_barcodes();
-	} else if (format == POINT_CLOUD && threshold < std::numeric_limits<value_t>::max()) {
+	} else if*/ (format == POINT_CLOUD && threshold < std::numeric_limits<value_t>::max()) {
 		sparse_distance_matrix dist(read_point_cloud(filename ? file_stream : std::cin), threshold);
 		ripser<sparse_distance_matrix>(std::move(dist), dim_max, threshold, ratio, modulus)
 				.compute_barcodes();
@@ -137,5 +136,5 @@ int main(int argc, char** argv) {
 			    .compute_barcodes();
 		}
 		exit(0);
-	}*/
+	}
 }
